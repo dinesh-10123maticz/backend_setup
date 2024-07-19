@@ -4,15 +4,17 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "Node_ENV=local nodemon bebal_hook.js",
-    "demo": "Node_ENV=demo nodemon bebal_hook.js",
-    "staging": "Node_ENV=staging nodemon bebal_hook.js",
-    "production": "Node_ENV=production nodemon bebal_hook.js"
+    "start": "Node_ENV=local nodemon babal_hook.js",
+    "demo": "Node_ENV=demo nodemon babal_hook.js",
+    "staging": "Node_ENV=staging nodemon babal_hook.js",
+    "production": "Node_ENV=production nodemon babal_hook.js"
   },
   "author": "Dinesh Babu K_R",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@babel/cli": "^7.24.8",
+    "@babel/core": "^7.24.9",
     "@babel/plugin-transform-runtime": "^7.24.7",
     "@babel/preset-env": "^7.24.8",
     "@babel/register": "^7.24.6",
@@ -30,7 +32,9 @@
     "morgan": "^1.10.0",
     "node-cron": "^3.0.3",
     "socket.io": "^4.7.5",
-    "totp-generator": "^1.0.0"
+    "totp-generator": "^1.0.0",
+    "winston": "^3.13.1",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"

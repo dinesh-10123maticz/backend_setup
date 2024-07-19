@@ -2,7 +2,7 @@
 import config from '../config/config'
 import { isEmpty } from './common'
 
-export const registerValidation = async (data) => {
+export const formValidation = async (data) => {
     try {
         let error = {}
         if (isEmpty(data.Email)) {
@@ -22,6 +22,6 @@ export const registerValidation = async (data) => {
         } 
         return Object.keys(error)?.length > 0 ? { status: false, msg: "form validation failed" , success : "error" , data : error } : { status: true, msg: "form validation succedd" , success : "success" , data : error }
     } catch (e) {
-        console.log("registerValidation_err", e);
+        console.log("formValidation_err", e);
     }
 }

@@ -1,10 +1,11 @@
 import CryptoJS, { AES, enc } from "crypto-js";
 import bcrypt from 'bcrypt';
+import { trycatch } from "./errorhandling";
 
 
 /**
  * 
- * @param {Data which one was Encrypt} data 
+ * @param {Data which one was Encrypt - (object or String)} data 
  * @param {User's secret_key or common secret_key} sec_key 
  * @usage Function used for Encrypt a data
  * @returns {encData}
@@ -27,7 +28,7 @@ export const Encryptdata = (data, sec_key) => {
 
 /**
  * 
- * @param {Data which one was Encrypt} data 
+ * @param {Data which one was Encrypt - (object or String)} data 
  * @param {User's secret_key or common secret_key} sec_key
  * @param {key for decrypt single word} key 
  * @returns {}
