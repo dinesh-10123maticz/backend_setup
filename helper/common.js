@@ -1,5 +1,9 @@
 import CryptoJS, { AES, enc } from "crypto-js";
 import bcrypt from 'bcrypt';
+const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
+const ffmpeg = require("fluent-ffmpeg");
+ffmpeg.setFfmpegPath(ffmpegPath);
+import sharp from "sharp";
 import { trycatch } from "./errorhandling";
 
 
@@ -63,8 +67,18 @@ export const isEmpty = value =>
 
 export const ImageAdd = trycatch(async (data) => {
   const { path, filename, file } = data;
+  let blobData = String(file?.mimetype).includes("image") &&  await axios.get(file, { responseType: 'arraybuffer' }) 
   await CreateDir({ path, from: 'Directory Create' });
   await file?.mv(path + filename);
+  await compress_file_upload([{
+    filename : filename,
+    path : path + filename,
+    file : String(file?.mimetype).includes("image") ? {
+    data: Buffer.from(blobData, "utf-8"), name: "compressed", mimetype: response.headers["content-type"]
+  } : "" ,
+  fie_path : path + filename
+}])
+  
   return filename;
 });
 
@@ -81,6 +95,57 @@ export const Deleteimage = trycatch(async (data) => {
     return 'deleted'
   }
 })
+
+export const compress_file_upload = async (compress_file) => {
+
+  if (compress_file) {
+    let newSend = await Promise.all(
+      compress_file.map(async (item) => {
+        const { data, name, mimetype } = item.files;
+        // await fs.mkdir(item.path, { recursive: true }, async function () {
+        var nftimg = await fs.promises.mkdir(item.path, { recursive: true })
+        // var tokenname = await data.files.mv(data.path + data.filename)
+        if (String(mimetype).includes("image")) {
+          sharp(data, { animated: true })
+            .webp({ quality: 80 })
+            .toFile(item.path + item.filename)
+            .then(() => {
+              return true;
+            })
+            .catch((e) => {
+              return false;
+            });
+          return item.filename;
+        }
+        if (
+          String(mimetype).includes("audio") ||
+          String(mimetype).includes("video")
+        ) {
+          var datvi = await ffmpeg(item.fie_path)
+            .setStartTime("00:00:01")
+            .setDuration(10)
+            .output(item.path + item.filename)
+            .on("end", function (err) {
+              if (!err) {
+                return true;
+              }
+            })
+            .on("error", function (err) {
+              return false;
+            })
+            .run();
+          return item.filename;
+        }
+        // });
+        return item.filename;
+
+
+      })
+    );
+    return newSend.pop();
+  }
+};
+
 
 export const Pwdtohash = trycatch(async (data) => {
   let hash = await bcrypt.hash(data, 5)
