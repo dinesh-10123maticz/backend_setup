@@ -1,9 +1,18 @@
 import CryptoJS, { AES, enc } from "crypto-js";
 import bcrypt from 'bcrypt';
+
+/* image and video compression setup */
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 const ffmpeg = require("fluent-ffmpeg");
 ffmpeg.setFfmpegPath(ffmpegPath);
 import sharp from "sharp";
+
+/* OTP generator */
+import { TOTP } from "totp-generator";
+
+/* twilio for send sms configration */
+const client = require('twilio')(Config.TWILIOID, Config.TWILIOPASS);
+
 import { trycatch } from "./errorhandling";
 
 
@@ -59,28 +68,179 @@ export const Decryptdata = (data, sec_key, key) => {
   }
 }
 
+/**
+ * 
+ * @param {type  - phone or email } type 
+ * @param {data - phone number or email} data 
+ * @returns 
+ */
+
+export const sendOtp = async(type, data)=> {
+  let retData = {};
+  let random = await otpgenerate();
+  const newotp = random;
+
+  let html = "<p>Your OTP is {{otp}}</p>";
+  html = html.replace("{{otp}}", newotp);
+  let resp;
+  if (type === "phone") {
+    resp = SendOtptomobile(data);
+  } else {
+    resp = await SendMail(data, html, "Verification OTP");
+  }
+
+  let fid = type == "phone" ? { phone: data } : { email: data };
+  const updatepwd = await FindOneAndUpdate({
+    Db: Users,
+    findData: fid,
+    UpdateData: { otp: newotp, registered: true },
+  });
+
+  let status = resp ? true : false;
+
+  return status;
+}
+
+/**
+ * 
+ * @param {email for send OTP} Email 
+ * @param {which content was send} html 
+ * @param {subject of email} subject 
+ * @returns 
+ */
+export const SendMail = async (Email, html, subject) => {
+   
+  const smtp = await nodemailer.createTransport(
+      Config.keyEnvBased.emailGateway.nodemailer
+  );
+
+  const message = {
+      to: Email,
+      from: Config.keyEnvBased.emailGateway.fromMail,
+      subject: subject,
+      html: html,
+  }
+  console.log('message', message)
+ let mail= await smtp.sendMail(message)
+ console.log("mail",mail);
+ if(mail.response.includes('250') && !isEmpty(mail.messageId)){
+  return true
+ }
+ else{
+   return false
+ }
+}
+
+/**
+ * 
+ * @param {mobile number for send OTP} mobile 
+ * @returns 
+ */
+export const SendOtptomobile = async (mobile) => {
+  return await client.verify.v2
+      .services(Config.TWILLO_VERIFY_SID)
+      .verifications.create({ to: mobile, channel: "sms" });
+}
+
+/**
+ * 
+ * @param {mobile number of sended otp} mobile 
+ * @param {sended OTP} otp 
+ * @returns 
+ */
+
+export const verifyOTP  = async (mobile,otp) => {
+  try{
+      console.log(mobile , otp , Config.TWILLO_VERIFY_SID)
+      const verificationCheck = await client.verify.v2.services(Config.TWILLO_VERIFY_SID)
+      .verificationChecks
+      .create({to: mobile, code: otp})
+      console.log("Verification check successful:", verificationCheck);
+      return verificationCheck
+  }catch(error){
+
+      if (error.status === 404 && error.code === 20404) {
+          console.error("Twilio Verify service not found or verification check endpoint not found.");
+      } else {
+          console.error(error)
+      }
+   
+  }
+  
+}
+
 export const isEmpty = value =>
   value === undefined ||
   value === null ||
   (typeof value === 'object' && Object.keys(value).length === 0) ||
   (typeof value === 'string' && value.trim().length === 0);
 
-export const ImageAdd = trycatch(async (data) => {
-  const { path, filename, file } = data;
-  let blobData = String(file?.mimetype).includes("image") &&  await axios.get(file, { responseType: 'arraybuffer' }) 
-  await CreateDir({ path, from: 'Directory Create' });
-  await file?.mv(path + filename);
-  await compress_file_upload([{
-    filename : filename,
-    path : path + filename,
-    file : String(file?.mimetype).includes("image") ? {
-    data: Buffer.from(blobData, "utf-8"), name: "compressed", mimetype: response.headers["content-type"]
-  } : "" ,
-  fie_path : path + filename
-}])
+  export const ImageAdd = trycatch(async (data) => {
+    const { path, filename, file } = data;
+    let blobData = String(file?.mimetype).includes("image") &&  await axios.get(file, { responseType: 'arraybuffer' }) 
+    await CreateDir({ path, from: 'Directory Create' });
+    await file?.mv(path + filename);
+    await compress_file_upload([{
+      filename : filename,
+      path : path + filename,
+      file : String(file?.mimetype).includes("image") ? {
+      data: Buffer.from(blobData, "utf-8"), name: "compressed", mimetype: response.headers["content-type"]
+    } : "" ,
+    fie_path : path + filename
+  }])
+    
+    return filename;
+  });
+
+  export const compress_file_upload = async (compress_file) => {
+
+    if (compress_file) {
+      let newSend = await Promise.all(
+        compress_file.map(async (item) => {
+          const { data, name, mimetype } = item.files;
+          // await fs.mkdir(item.path, { recursive: true }, async function () {
+          var nftimg = await fs.promises.mkdir(item.path, { recursive: true })
+          // var tokenname = await data.files.mv(data.path + data.filename)
+          if (String(mimetype).includes("image")) {
+            sharp(data, { animated: true })
+              .webp({ quality: 80 })
+              .toFile(item.path + item.filename)
+              .then(() => {
+                return true;
+              })
+              .catch((e) => {
+                return false;
+              });
+            return item.filename;
+          }
+          if (
+            String(mimetype).includes("audio") ||
+            String(mimetype).includes("video")
+          ) {
+            var datvi = await ffmpeg(item.fie_path)
+              .setStartTime("00:00:01")
+              .setDuration(10)
+              .output(item.path + item.filename)
+              .on("end", function (err) {
+                if (!err) {
+                  return true;
+                }
+              })
+              .on("error", function (err) {
+                return false;
+              })
+              .run();
+            return item.filename;
+          }
+          // });
+          return item.filename;
   
-  return filename;
-});
+  
+        })
+      );
+      return newSend.pop();
+    }
+  };
 
 export const CreateDir = trycatch(async (path) => {
   if (!fs.existsSync(path?.path)) {
@@ -95,57 +255,6 @@ export const Deleteimage = trycatch(async (data) => {
     return 'deleted'
   }
 })
-
-export const compress_file_upload = async (compress_file) => {
-
-  if (compress_file) {
-    let newSend = await Promise.all(
-      compress_file.map(async (item) => {
-        const { data, name, mimetype } = item.files;
-        // await fs.mkdir(item.path, { recursive: true }, async function () {
-        var nftimg = await fs.promises.mkdir(item.path, { recursive: true })
-        // var tokenname = await data.files.mv(data.path + data.filename)
-        if (String(mimetype).includes("image")) {
-          sharp(data, { animated: true })
-            .webp({ quality: 80 })
-            .toFile(item.path + item.filename)
-            .then(() => {
-              return true;
-            })
-            .catch((e) => {
-              return false;
-            });
-          return item.filename;
-        }
-        if (
-          String(mimetype).includes("audio") ||
-          String(mimetype).includes("video")
-        ) {
-          var datvi = await ffmpeg(item.fie_path)
-            .setStartTime("00:00:01")
-            .setDuration(10)
-            .output(item.path + item.filename)
-            .on("end", function (err) {
-              if (!err) {
-                return true;
-              }
-            })
-            .on("error", function (err) {
-              return false;
-            })
-            .run();
-          return item.filename;
-        }
-        // });
-        return item.filename;
-
-
-      })
-    );
-    return newSend.pop();
-  }
-};
-
 
 export const Pwdtohash = trycatch(async (data) => {
   let hash = await bcrypt.hash(data, 5)
