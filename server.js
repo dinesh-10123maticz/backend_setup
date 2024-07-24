@@ -8,6 +8,8 @@ import http from 'http'
 import cron from 'node-cron'
 import path from 'path'
 import morgan from 'morgan'
+const swaggerJSDoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 
 
 /* Defining app for server */
@@ -26,7 +28,20 @@ import logger from './config/logger';
 /* Routers */
 import all_router from './v1_app/routes/all_routes';
 
-
+/* SWAGGER CONFIGRATION */
+const options = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Your API Title',
+      version: '1.0.0',
+      description: 'API documentation for your Node.js application',
+    },
+  },
+  apis: ['./v1_app/user/controllers/*.js' ], // Path to the API routes
+};
+const swaggerSpec = swaggerJSDoc(options);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 /* const datas */
 const cacheTime = 86400000 * 3
@@ -97,7 +112,7 @@ app.get("/", (req, res) => {
 })
 
 /* Routers Defining */
-app.use(all_router)
+app.use("/v1",all_router)
 
 
 /* SERVER CREATION FOR SOCKET */

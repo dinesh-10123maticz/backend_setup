@@ -53,3 +53,7 @@ Start the server
   npm run start
 ```
 
+## Features
+
+- swagger initialized  - `http://host:port/api-docs`
+- logger implemented - path `public/logs`
