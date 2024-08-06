@@ -10,6 +10,7 @@ import { Decryptdata, isEmpty } from "./common";
 /**
  * 
  * @param { value, lifeTime, key }  
+ * @param {key} - {_id : user mongooseid,sec_key : encryptKey,...}
  * @param { this function is used for generate Token } res 
  */
 export const UseToken = async (value, key) => {
