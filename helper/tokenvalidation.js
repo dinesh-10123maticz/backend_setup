@@ -87,12 +87,11 @@ export const getSecretkeyFromJWT = async (jwtToken) => {
     }
     else {
         /* JWT VERIFY AND GET SEC_KEY */
-        let jwtToken = req.headers.authorization
         let verify = AuthendicateRequest(jwtToken)
 
         /* Get a secret Key from JWT  */
-        sec_key = Decryptdata(verify?.sec_key, config.SECRET_KEY)
-        return { status: true, success: "success", msg: "JWT verified and Get secret Key" ,data : sec_key }
+        if (!verify?.status) return { status: false, success: "error", msg: verify?.msg, data: {}}
+        return { status: true, success: "success", msg: "JWT verified and Get secret Key", data: verify?.data }
 
     }
 

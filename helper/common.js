@@ -323,3 +323,95 @@ export const Toprecition = trycatch(
     return num
   }
 )
+
+/**
+ * 
+ * @param {status - true (or) false} status 
+ * @param {success - "success" (or) "error"} success 
+ * @param {msg - "Message data that send to the user"} msg 
+ * @param {data - data that send to the user} data 
+ * @returns 
+ */
+export const getResData = (status, success, msg, data) => {
+  console.log('getResData : retData-->', { status, success, msg, data })
+  return { status, success, msg, data }
+}
+
+/**
+ * 
+ * @param {length of key} length 
+ * @returns encrypted Key
+ */
+export const Str_Random = async (length) => {
+  let result = '';
+  const characters = 'abcdefghijklmnopqrstuvwxyz0123456789@#$';
+
+  // Loop to generate characters for the specified length
+  for (let i = 0; i < length; i++) {
+    const randomInd = Math.floor(Math.random() * characters.length);
+    result += characters.charAt(randomInd);
+  }
+  console.log('result-->', result, Encryptdata(result, config.SECRET_KEY))
+  return Encryptdata(result, config.SECRET_KEY);
+}
+
+/**
+ * 
+ * @param {error object} err 
+ * @param {*} res 
+ * @param {*} next 
+ */
+export const sendResponse = async (err, res, next) => {
+  try {
+    console.log('Errs on send Response---->', err);
+    if (isEmpty(err)) {
+      next()
+    } else {
+      // return true
+      res.status(200).json(Encryptdata({ status: false, msg: "fields required", data: err, success: "error" }, config.SECRET_KEY))
+    }
+  } catch (err) {
+    console.log("🚀 ~ sendResponse ~ err:", err)
+  }
+
+}
+
+export const ImgEmpty = (data) => {
+  try {
+    return (
+      (typeof (data) == 'object' && !data?.type) ||
+      data === undefined ||
+      data == "undefined" ||
+      data === null ||
+      (typeof data === 'string' && data.trim().length === 0) ||
+      (typeof data === 'string' && data === '0') ||
+      (typeof data === 'number' && data === 0)
+    )
+  }
+  catch (err) {
+    console.log('ImgUrl_error', err)
+    return false
+  }
+}
+
+export const makeArr = (data) => {
+  try {
+    if (isEmpty(data)) return []
+
+    if (data?.length) return data
+    else return [data]
+
+  } catch (e) {
+    console.log('Error on makeArr---->', e);
+    return []
+  }
+}
+
+export const parseJson = (data) => {
+  try {
+    return JSON.parse(data);
+  } catch (e) {
+    console.log('ERRRob=nparses---->',e);
+    return data;
+  }
+}
